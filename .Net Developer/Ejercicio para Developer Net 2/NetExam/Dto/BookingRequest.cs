@@ -1,8 +1,9 @@
 ﻿namespace NetExam.Dto
 {
+    using NetExam.Abstractions;
     using System;
 
-    public class BookingRequest
+    public class BookingRequest : IBooking
     {
         public string LocationName { get; }
         public string OfficeName { get; }

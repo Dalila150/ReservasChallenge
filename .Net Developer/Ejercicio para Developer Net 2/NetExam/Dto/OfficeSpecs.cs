@@ -1,9 +1,10 @@
 ﻿namespace NetExam.Dto
 {
+    using NetExam.Abstractions;
     using System;
     using System.Collections.Generic;
 
-    public class OfficeSpecs
+    public class OfficeSpecs : IOffice
     {
         public string LocationName { get; }
         public string Name { get; }

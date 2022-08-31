@@ -26,7 +26,7 @@
         public void ShouldAddALocation()
         {
             OfficeRental.AddLocation(DefaultLocationSpecs);
-
+            
             Assert.Equal(LocationName, OfficeRental.GetLocations().Single().Name);
         }
 

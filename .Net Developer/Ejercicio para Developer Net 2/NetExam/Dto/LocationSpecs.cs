@@ -1,8 +1,9 @@
 ﻿namespace NetExam.Dto
 {
+    using NetExam.Abstractions;
     using System;
 
-    public class LocationSpecs
+    public class LocationSpecs : ILocation
     {
         public string Name { get; }
         public string Neighborhood { get; }
