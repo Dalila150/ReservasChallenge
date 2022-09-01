@@ -17,13 +17,36 @@
 
         public void AddLocation(LocationSpecs locationSpecs)
         {
+            var locales = GetLocations();
+            var existe = locales.Where(x => x.Name == locationSpecs.Name);
+             
+            if (existe.Count() != 0)
+            {
+                throw new Exception("Este local ya existe.");
+            }
+            else
+            {
                 listLocations.Add(locationSpecs);
+            }
+            
             
         }
 
         public void AddOffice(OfficeSpecs officeSpecs)
         {
-            listOffices.Add(officeSpecs);
+            var locales = GetLocations();
+            var existe = locales.Where(x => x.Name == officeSpecs.LocationName).ToList();
+
+            if (existe.Count() != 0)
+            {
+                listOffices.Add(officeSpecs);
+            }
+            else
+            {
+                throw new Exception("El nombre de local para la oficina no existe.");
+            }
+           
+            
             
         }
 
@@ -31,19 +54,31 @@
         {
             //deberia pregu8ntar si esa oficina no esta reservada ese día
             var reservas = GetBookings(bookingRequest.LocationName, bookingRequest.OfficeName);
-            
-            //foreach(var item in reservas)
-            //{
-            //    if(item.DateTime == bookingRequest.DateTime)
-            //    {
+            var reservas2 = listBookingRequests.Where(x => x.LocationName == bookingRequest.LocationName && x.OfficeName == bookingRequest.OfficeName);
+            DateTime inicioRangoHorarioReserva;
+            DateTime finRangoHorarioReserva;
 
-            //        throw new InvalidOperationException("hola?");
-            //    }
-            //    else
-            //    {
-            //        listBookingRequests.Add(bookingRequest);
-            //    }
-            //}
+            DateTime inicioRangoRequest = bookingRequest.DateTime;
+            DateTime finRangoHorarioRequest = bookingRequest.DateTime.AddHours(bookingRequest.Hours);
+
+            foreach (var item in reservas2) //reserva por reserva
+            {
+                //me fijo el rango horario de la reserva
+                inicioRangoHorarioReserva = item.DateTime;
+                finRangoHorarioReserva = item.DateTime.AddHours(item.Hours);
+
+
+                if(inicioRangoRequest <= finRangoHorarioReserva || finRangoHorarioRequest >= inicioRangoHorarioReserva)
+                {
+                    throw new Exception("La oficina ya esta reservada ese dia.");
+                }
+                else
+                {
+                    listBookingRequests.Add(bookingRequest);
+                }
+
+
+            }
 
             listBookingRequests.Add(bookingRequest);
 
@@ -86,25 +121,56 @@
 
         public IEnumerable<IOffice> GetOfficeSuggestion(SuggestionRequest suggestionRequest)
         {
-            List<OfficeSpecs> listOfficeSuggestion = new List<OfficeSpecs>();
+            
+            var locales = listLocations.ToList();
 
-            foreach (var item in listOffices)
-            {
-                if(suggestionRequest.CapacityNeeded > item.MaxCapacity)//cumple necesidad de capacidad
+            var oficinasConCapacidad = listOffices
+                .Where(x => x.MaxCapacity >= suggestionRequest.CapacityNeeded) //filtro por capacidad
+                .ToList();
+            var oficinasConRecursos = new List<OfficeSpecs>();
+           
+
+                foreach (var myOffi in oficinasConCapacidad) //recorre oficina x oficina
                 {
-                   // //preguntar por vecindario al final
-                   // var local = item.LocationName;
-                   // var vecindario = listLocations.Where(x => x.Name == local).;
-                   //if(suggestionRequest.PreferedNeigborHood == item..)
-                   // {
-                   //     //agregar oficina a la lista
-                   // }
-                    
-                    listOfficeSuggestion.Add(item);
+                    var coincidencias = myOffi.AvailableResources.Intersect(suggestionRequest.ResourcesNeeded);
+                    bool sonIguales = coincidencias.OrderBy(x => x).SequenceEqual(suggestionRequest.ResourcesNeeded.OrderBy(x => x));
+
+                    if (sonIguales)
+                    {
+                        oficinasConRecursos.Add(myOffi); //se le agrega filtro por recursos
+                    }
+
+                }
+            
+            var resultadoOffices = oficinasConRecursos.OrderByDescending(x => x.MaxCapacity);
+
+            var resultadoOfficesVecindario = new List<OfficeSpecs>(); //nueva lista para retornar especificamente por preferencia de vecindario
+
+            foreach (var item in resultadoOffices)
+            {
+                
+                // si coincide el vecindario con el request y agrego a lista
+
+                var localOfi = listLocations.Where(x => x.Name == item.LocationName).FirstOrDefault();
+                var vecindarioOfi = localOfi.Neighborhood;
+
+                if(vecindarioOfi == suggestionRequest.PreferedNeigborHood)
+                {
+                    resultadoOfficesVecindario.Add(item);
                 }
             }
 
-            return listOfficeSuggestion;
+            var resultadoOfficesVecindarioYCap = resultadoOfficesVecindario.OrderByDescending(x => x.MaxCapacity);
+
+                if (resultadoOfficesVecindarioYCap.Count() > 0)
+                {
+                    return resultadoOfficesVecindarioYCap;
+                }
+                else
+                {
+                    return resultadoOffices;
+                }
+            
         }
     }
 }
